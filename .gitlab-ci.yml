@@ -1,0 +1,47 @@
+stages:
+  - lint
+  - build
+  - validate
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+lint:
+  stage: lint
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir ruff
+  script:
+    # Erreurs de syntaxe et bugs réels (imports/noms non définis) uniquement,
+    # pas de style : le code n'a jamais été linté avant cette pipeline.
+    - ruff check --select=E9,F shared/ services/
+
+build:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  parallel:
+    matrix:
+      - SERVICE:
+          - api_gateway
+          - orchestrator
+          - inventory_service
+          - filter_service
+          - booking_service
+          - affinity_service
+          - drs_adapter_service
+          - scoring_service
+  script:
+    - docker build -f "services/${SERVICE}/Dockerfile" -t "${SERVICE}:${CI_COMMIT_SHORT_SHA}" .
+
+validate-compose:
+  stage: validate
+  image: docker:27
+  services:
+    - docker:27-dind
+  before_script:
+    - apk add --no-cache docker-cli-compose
+    - cp .env.example .env
+  script:
+    - docker compose config -q

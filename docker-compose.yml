@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  inventory_service:
+    build:
+      context: .
+      dockerfile: services/inventory_service/Dockerfile
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - INVENTORY_CACHE_TTL=1800
+    depends_on:
+      - redis
+    ports:
+      - "8001:8000"
+
+  filter_service:
+    build:
+      context: .
+      dockerfile: services/filter_service/Dockerfile
+    ports:
+      - "8002:8000"
+
+  booking_service:
+    build:
+      context: .
+      dockerfile: services/booking_service/Dockerfile
+    environment:
+      - BOOKING_DATABASE_URL=sqlite:///./bookings.db
+    volumes:
+      - booking_data:/app/data
+    ports:
+      - "8003:8000"
+
+  affinity_service:
+    build:
+      context: .
+      dockerfile: services/affinity_service/Dockerfile
+    ports:
+      - "8004:8000"
+
+  drs_adapter_service:
+    build:
+      context: .
+      dockerfile: services/drs_adapter_service/Dockerfile
+    env_file: .env
+    ports:
+      - "8005:8000"
+
+  scoring_service:
+    build:
+      context: .
+      dockerfile: services/scoring_service/Dockerfile
+    ports:
+      - "8006:8000"
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    environment:
+      - INVENTORY_SERVICE_URL=http://inventory_service:8000
+      - FILTER_SERVICE_URL=http://filter_service:8000
+      - BOOKING_SERVICE_URL=http://booking_service:8000
+      - AFFINITY_SERVICE_URL=http://affinity_service:8000
+      - DRS_ADAPTER_SERVICE_URL=http://drs_adapter_service:8000
+      - SCORING_SERVICE_URL=http://scoring_service:8000
+    depends_on:
+      - inventory_service
+      - filter_service
+      - booking_service
+      - affinity_service
+      - drs_adapter_service
+      - scoring_service
+    ports:
+      - "8007:8000"
+
+  api_gateway:
+    build:
+      context: .
+      dockerfile: services/api_gateway/Dockerfile
+    environment:
+      - ORCHESTRATOR_URL=http://orchestrator:8000
+    depends_on:
+      - orchestrator
+    ports:
+      - "8000:8000"
+
+volumes:
+  booking_data:
