@@ -32,9 +32,9 @@ IaaS chez Groupe La Poste.
 
 Deux façons de faire une demande de placement :
 - **Swagger** : `POST /api/v1/placements` sur l'API Gateway (http://localhost:8000/docs)
-- **Interface web** : formulaire guidé sur http://localhost:8080/request
+- **Interface web** : formulaire guidé sur http://localhost:8090/request
 
-Côté admin (http://localhost:8080/admin) : historique des réservations,
+Côté admin (http://localhost:8090/admin) : historique des réservations,
 verrous de région actifs, inventaire vSphere par backend, santé des 8
 microservices.
 
@@ -61,7 +61,7 @@ Unblock-File -Path .\run_local_real.ps1, .\stop_local_real.ps1
 .\run_local_real.ps1
 ```
 
-Va sur http://localhost:8000/docs (Swagger) ou http://localhost:8080 (interface web) pour tester.
+Va sur http://localhost:8000/docs (Swagger) ou http://localhost:8090 (interface web) pour tester.
 Pour tout arrêter : `.\stop_local_real.ps1`
 
 ### Avec Docker (Linux/Mac/Windows)
@@ -102,11 +102,11 @@ Un 9e service, `web_ui`, sert deux interfaces HTML (FastAPI + Jinja2), sans
 aucune logique métier propre : il relaie vers l'API Gateway, le Booking
 Service et l'Inventory Service.
 
-- **http://localhost:8080/request** — formulaire de demande de placement
+- **http://localhost:8090/request** — formulaire de demande de placement
   (alternative à Swagger pour un utilisateur non technique). Affiche le
   résultat (cluster/host/datastore/score) ou l'erreur retournée par le
   pipeline.
-- **http://localhost:8080/admin** — espace admin :
+- **http://localhost:8090/admin** — espace admin :
   - `/admin/bookings` : historique des réservations (`booking_service`)
   - `/admin/locks` : verrous de région actuellement actifs
   - `/admin/inventory` : clusters/hosts d'un backend vSphere (`inventory_service`)

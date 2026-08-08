@@ -35,11 +35,11 @@ run_service api_gateway 8000
 
 export API_GATEWAY_URL=http://localhost:8000
 export API_GATEWAY_PUBLIC_URL=http://localhost:8000/docs
-run_service web_ui 8080
+run_service web_ui 8090
 
 echo ""
 echo "Tous les services sont lancés."
-echo "Interface web       : http://localhost:8080"
+echo "Interface web       : http://localhost:8090"
 echo "Documentation Swagger : http://localhost:8000/docs"
 echo "Appuie sur CTRL+C pour tout arrêter."
 wait

@@ -109,7 +109,7 @@ services:
     depends_on:
       - api_gateway
     ports:
-      - "8080:8000"
+      - "8090:8000"
 
 volumes:
   booking_data:
