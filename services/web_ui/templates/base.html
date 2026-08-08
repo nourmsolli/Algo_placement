@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}VM Placement{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div>
+        <h1>VM Placement</h1>
+        <p class="subtitle">Placement automatisé de VM, intégré à VMware DRS</p>
+      </div>
+      <nav class="top-nav">
+        <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">Accueil</a>
+        <a href="/request" class="{% if request.url.path == '/request' %}active{% endif %}">Faire une demande</a>
+        <a href="{{ swagger_url }}" target="_blank" rel="noopener">Swagger API</a>
+        <a href="/admin" class="{% if request.url.path.startswith('/admin') %}active{% endif %}">Admin</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>VM Placement Microservices &mdash; Projet stage IaaS, Groupe La Poste</footer>
+</body>
+</html>

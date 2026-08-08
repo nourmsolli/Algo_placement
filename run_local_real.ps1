@@ -93,7 +93,23 @@ Write-Host "=== 4. API Gateway ===" -ForegroundColor Cyan
 Start-MicroService -Dir (Join-Path $ProjectRoot "services\api_gateway") -Name "api_gateway" -Port 8000 -ExtraEnv @{ "ORCHESTRATOR_URL" = "http://127.0.0.1:8007" }
 
 Write-Host ""
+Write-Host "=== 5. Interface web ===" -ForegroundColor Cyan
+$webUiEnv = @{
+    "API_GATEWAY_URL"          = "http://127.0.0.1:8000"
+    "API_GATEWAY_PUBLIC_URL"   = "http://localhost:8000/docs"
+    "ORCHESTRATOR_URL"         = "http://127.0.0.1:8007"
+    "INVENTORY_SERVICE_URL"    = "http://127.0.0.1:8001"
+    "FILTER_SERVICE_URL"       = "http://127.0.0.1:8002"
+    "BOOKING_SERVICE_URL"      = "http://127.0.0.1:8003"
+    "AFFINITY_SERVICE_URL"     = "http://127.0.0.1:8004"
+    "DRS_ADAPTER_SERVICE_URL"  = "http://127.0.0.1:8005"
+    "SCORING_SERVICE_URL"      = "http://127.0.0.1:8006"
+}
+Start-MicroService -Dir (Join-Path $ProjectRoot "services\web_ui") -Name "web_ui" -Port 8080 -ExtraEnv $webUiEnv
+
+Write-Host ""
 Write-Host "Pipeline complet lance en mode REEL (connecte a vSphere)." -ForegroundColor Green
+Write-Host "Interface web         : http://localhost:8080" -ForegroundColor Green
 Write-Host "Documentation Swagger : http://localhost:8000/docs" -ForegroundColor Green
 Write-Host "Attention : le premier placement peut etre plus long (premier scan vSphere)," -ForegroundColor Yellow
 Write-Host "les suivants seront rapides grace au cache (30 min par defaut)." -ForegroundColor Yellow

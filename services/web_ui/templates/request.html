@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}VM Placement - Demande{% endblock %}
+{% block content %}
+
+{% if error %}
+<div class="alert error">{{ error }}</div>
+{% endif %}
+
+{% if result %}
+<div class="card">
+  <h2>Résultat du placement</h2>
+  <div class="alert success">Un emplacement a été trouvé pour votre demande.</div>
+  <div class="result-grid">
+    <div class="stat">
+      <div class="label">Cluster</div>
+      <div class="value">{{ result.cluster_name }}</div>
+    </div>
+    {% if result.host_name %}
+    <div class="stat">
+      <div class="label">Host ESX</div>
+      <div class="value">{{ result.host_name }}</div>
+    </div>
+    {% endif %}
+    <div class="stat">
+      <div class="label">Datastore</div>
+      <div class="value">{{ result.datastore_name }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Score</div>
+      <div class="value">{{ "%.2f"|format(result.score) }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Slots VM</div>
+      <div class="value">{{ result.vm_slots }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Région</div>
+      <div class="value">{{ result.region }}</div>
+    </div>
+  </div>
+
+  {% if result.placements and result.placements|length > 1 %}
+  <h3>Détail par VM</h3>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Cluster</th><th>Host</th><th>Datastore</th><th>Score</th></tr>
+    </thead>
+    <tbody>
+      {% for p in result.placements %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ p.cluster_name }}</td>
+        <td>{{ p.host_name or "—" }}</td>
+        <td>{{ p.datastore_name }}</td>
+        <td>{{ "%.2f"|format(p.score) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if result.logs %}
+  <h3>Logs du pipeline</h3>
+  <pre class="logs">{{ result.logs|join("\n") }}</pre>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Nouvelle demande de placement</h2>
+  <p class="hint">Renseigne les caractéristiques de la ou des VM à placer. Équivalent du POST /api/v1/placements de l'API Gateway.</p>
+
+  <form method="post" action="/request">
+    <div class="form-grid">
+      <div class="field">
+        <label for="backend">Backend vSphere</label>
+        <input type="text" id="backend" name="backend" value="{{ form.get('backend', 'DC1') }}" required>
+        <small>Code du datacenter cible, ex : DC1</small>
+      </div>
+      <div class="field">
+        <label for="region">Région</label>
+        <input type="text" id="region" name="region" value="{{ form.get('region', 'EU-WEST') }}" required>
+      </div>
+      <div class="field">
+        <label for="offer_code">Offre</label>
+        <select id="offer_code" name="offer_code">
+          {% for code in offer_codes %}
+          <option value="{{ code }}" {% if form.get('offer_code') == code %}selected{% endif %}>{{ code }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="target_placement">Type de placement</label>
+        <select id="target_placement" name="target_placement">
+          <option value="cluster" {% if form.get('target_placement', 'cluster') == 'cluster' %}selected{% endif %}>Cluster (résilient)</option>
+          <option value="esx" {% if form.get('target_placement') == 'esx' %}selected{% endif %}>ESX (non résilient)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="nb_vms">Nombre de VM</label>
+        <input type="number" id="nb_vms" name="nb_vms" min="1" value="{{ form.get('nb_vms', 1) }}" required>
+      </div>
+      <div class="field">
+        <label for="cpu_size">vCPU par VM</label>
+        <input type="number" id="cpu_size" name="cpu_size" min="0" value="{{ form.get('cpu_size', 4) }}" required>
+      </div>
+      <div class="field">
+        <label for="ram_size">RAM par VM (Go)</label>
+        <input type="number" id="ram_size" name="ram_size" min="0" value="{{ form.get('ram_size', 16) }}" required>
+      </div>
+      <div class="field">
+        <label for="storage_size">Stockage par VM (Go)</label>
+        <input type="number" id="storage_size" name="storage_size" min="0" value="{{ form.get('storage_size', 100) }}" required>
+      </div>
+      <div class="field">
+        <label for="gpu_memory">Mémoire GPU (Go)</label>
+        <input type="number" id="gpu_memory" name="gpu_memory" min="0" value="{{ form.get('gpu_memory', '') or '' }}">
+        <small>Laisser vide si pas de GPU requis</small>
+      </div>
+      <div class="field">
+        <label for="vm_group">VM group</label>
+        <input type="text" id="vm_group" name="vm_group" value="{{ form.get('vm_group', '') or '' }}">
+        <small>Optionnel</small>
+      </div>
+      <div class="field">
+        <label for="anti_affinity">Règle d'anti-affinité</label>
+        <input type="text" id="anti_affinity" name="anti_affinity" value="{{ form.get('anti_affinity', '') or '' }}">
+        <small>Optionnel</small>
+      </div>
+      <div class="field">
+        <label for="upgrade_domains">Upgrade domains</label>
+        <input type="text" id="upgrade_domains" name="upgrade_domains" value="{{ form.get('upgrade_domains') and form.get('upgrade_domains')|join(', ') or '' }}">
+        <small>Optionnel, séparés par des virgules (placement ESX uniquement)</small>
+      </div>
+    </div>
+    <button type="submit">Lancer le placement</button>
+  </form>
+</div>
+{% endblock %}

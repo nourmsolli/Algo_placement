@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}VM Placement - Accueil{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Bienvenue</h2>
+  <p class="hint">
+    Choisis comment tu veux demander le placement d'une ou plusieurs VM : via le
+    formulaire guidé ci-dessous, ou directement via l'API (documentation Swagger).
+    Côté admin, retrouve l'historique des réservations, les verrous actifs,
+    l'inventaire vSphere et la santé des microservices.
+  </p>
+</div>
+
+<div class="grid-cards">
+  <a class="action-card" href="/request">
+    <span class="icon">🖥️</span>
+    <h3>Faire une demande</h3>
+    <p>Remplis un formulaire pour demander le placement d'une VM sur le cluster ou l'ESX le plus adapté.</p>
+  </a>
+
+  <a class="action-card" href="{{ swagger_url }}" target="_blank" rel="noopener">
+    <span class="icon">🔌</span>
+    <h3>API / Swagger</h3>
+    <p>Envoie directement des requêtes JSON à l'API Gateway et explore tous les endpoints disponibles.</p>
+  </a>
+
+  <a class="action-card" href="/admin">
+    <span class="icon">📊</span>
+    <h3>Espace admin</h3>
+    <p>Historique des réservations, verrous de région, inventaire vSphere et santé des 8 microservices.</p>
+  </a>
+</div>
+{% endblock %}

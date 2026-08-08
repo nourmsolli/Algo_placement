@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Admin - Vue d'ensemble{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="grid-cards">
+  <a class="action-card" href="/admin/bookings">
+    <span class="icon">📒</span>
+    <h3>Réservations</h3>
+    <p>Historique des placements récents : cluster, host, ressources réservées.</p>
+  </a>
+  <a class="action-card" href="/admin/locks">
+    <span class="icon">🔒</span>
+    <h3>Verrous actifs</h3>
+    <p>Régions actuellement verrouillées par une demande de placement en cours.</p>
+  </a>
+  <a class="action-card" href="/admin/inventory">
+    <span class="icon">🗄️</span>
+    <h3>Inventaire vSphere</h3>
+    <p>Clusters, hosts et capacité restante d'un backend vSphere.</p>
+  </a>
+  <a class="action-card" href="/admin/health">
+    <span class="icon">💚</span>
+    <h3>Santé des services</h3>
+    <p>État des 8 microservices du pipeline de placement.</p>
+  </a>
+</div>
+{% endblock %}

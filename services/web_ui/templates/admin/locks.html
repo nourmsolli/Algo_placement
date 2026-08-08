@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Admin - Verrous{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="card">
+  <h2>Verrous de région actifs</h2>
+  <p class="hint">Une région verrouillée est en cours de traitement par une demande de placement (TTL 30s).</p>
+
+  {% if error %}
+  <div class="alert error">{{ error }}</div>
+  {% elif not locks %}
+  <div class="empty-state">Aucun verrou actif en ce moment.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr><th>Région</th><th>Token</th><th>Expire à</th></tr>
+    </thead>
+    <tbody>
+      {% for lock in locks %}
+      <tr>
+        <td>{{ lock.region }}</td>
+        <td><code>{{ lock.token }}</code></td>
+        <td>{{ lock.expires_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

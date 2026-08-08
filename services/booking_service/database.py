@@ -59,6 +59,21 @@ def get_recent_bookings(region: str, max_age_hours: int = 2) -> list[Booking]:
         return list(session.exec(statement))
 
 
+def get_all_bookings(limit: int = 200) -> list[Booking]:
+    """Historique des réservations, toutes régions confondues (pour l'admin)."""
+    with Session(engine) as session:
+        statement = select(Booking).order_by(Booking.created_at.desc()).limit(limit)
+        return list(session.exec(statement))
+
+
+def list_active_locks() -> list[RegionLock]:
+    """Verrous de région actuellement valides (pour l'admin)."""
+    now = datetime.utcnow()
+    with Session(engine) as session:
+        statement = select(RegionLock).where(RegionLock.expires_at > now)
+        return list(session.exec(statement))
+
+
 def delete_old_bookings(max_age_hours: int = 2) -> int:
     threshold = datetime.utcnow() - timedelta(hours=max_age_hours)
     with Session(engine) as session:

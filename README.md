@@ -7,24 +7,36 @@ IaaS chez Groupe La Poste.
 ## 1. Vue d'ensemble
 
 ```
-Demande de création de VM
-        │
-        ▼
-   API Gateway
-        │
-        ▼
-   Orchestrateur (Placement Adapter Engine)
-        │
-        ├──► Inventory Service   (scanne vSphere, cache, PropertyCollector optimisé)
-        ├──► Filter Service      (élimine les serveurs qui ne correspondent pas)
-        ├──► Booking Service     (déduit les réservations récentes <2h + verrou anti-surallocation)
-        ├──► Affinity Service    (vérifie les règles d'écartement entre VMs)
-        ├──► DRS Adapter Service (lit la charge réelle des serveurs, temps réel)
-        └──► Scoring Service     (calcule le score, retourne le meilleur serveur)
-                │
-                ▼
-            Résultat  ──────► VMware DRS (vMotion, équilibrage continu)
+     Web UI (formulaire)          Swagger / clients API
+              │                             │
+              └───────────────┬─────────────┘
+                               ▼
+                          API Gateway
+                               │
+                               ▼
+                Orchestrateur (Placement Adapter Engine)
+                               │
+                ├──► Inventory Service   (scanne vSphere, cache, PropertyCollector optimisé)
+                ├──► Filter Service      (élimine les serveurs qui ne correspondent pas)
+                ├──► Booking Service     (déduit les réservations récentes <2h + verrou anti-surallocation)
+                ├──► Affinity Service    (vérifie les règles d'écartement entre VMs)
+                ├──► DRS Adapter Service (lit la charge réelle des serveurs, temps réel)
+                └──► Scoring Service     (calcule le score, retourne le meilleur serveur)
+                               │
+                               ▼
+                           Résultat  ──────► VMware DRS (vMotion, équilibrage continu)
+
+     Web UI (admin) ──► lit Booking Service (historique/verrous) + Inventory Service
+                         + /health de chaque microservice
 ```
+
+Deux façons de faire une demande de placement :
+- **Swagger** : `POST /api/v1/placements` sur l'API Gateway (http://localhost:8000/docs)
+- **Interface web** : formulaire guidé sur http://localhost:8080/request
+
+Côté admin (http://localhost:8080/admin) : historique des réservations,
+verrous de région actifs, inventaire vSphere par backend, santé des 8
+microservices.
 
 ## 2. Lancer le projet
 
@@ -49,7 +61,7 @@ Unblock-File -Path .\run_local_real.ps1, .\stop_local_real.ps1
 .\run_local_real.ps1
 ```
 
-Va sur http://localhost:8000/docs pour tester.
+Va sur http://localhost:8000/docs (Swagger) ou http://localhost:8080 (interface web) pour tester.
 Pour tout arrêter : `.\stop_local_real.ps1`
 
 ### Avec Docker (Linux/Mac/Windows)
@@ -84,7 +96,26 @@ curl -X POST "http://localhost:8000/api/v1/placements?backend=DC1" \
       }'
 ```
 
-## 4. Fonctionnalités portées depuis le monolithe
+## 4. Interfaces web (`web_ui`)
+
+Un 9e service, `web_ui`, sert deux interfaces HTML (FastAPI + Jinja2), sans
+aucune logique métier propre : il relaie vers l'API Gateway, le Booking
+Service et l'Inventory Service.
+
+- **http://localhost:8080/request** — formulaire de demande de placement
+  (alternative à Swagger pour un utilisateur non technique). Affiche le
+  résultat (cluster/host/datastore/score) ou l'erreur retournée par le
+  pipeline.
+- **http://localhost:8080/admin** — espace admin :
+  - `/admin/bookings` : historique des réservations (`booking_service`)
+  - `/admin/locks` : verrous de région actuellement actifs
+  - `/admin/inventory` : clusters/hosts d'un backend vSphere (`inventory_service`)
+  - `/admin/health` : statut `GET /health` des 8 microservices du pipeline
+
+Pas d'authentification sur l'espace admin dans cette version (à ajouter si
+le service est exposé au-delà d'un environnement de démo/stage).
+
+## 5. Fonctionnalités portées depuis le monolithe
 
 | Fonctionnalité | Où dans les microservices |
 |---|---|
@@ -123,7 +154,7 @@ curl -X POST "http://localhost:8000/api/v1/placements?backend=DC1" \
 {"region":"EU-WEST","offer_code":"PRF","nb_vms":2,"cpu_size":4,"ram_size":16,"storage_size":50,"target_placement":"cluster","vm_group":"demo-vm-group","anti_affinity":"anti-affinity-demo"}
 ```
 
-## 5. Le scan optimisé (PropertyCollector)
+## 6. Le scan optimisé (PropertyCollector)
 
 L'Inventory Service utilise **par défaut** `scan_optimized()` : au lieu d'un
 appel réseau par host/VM (méthode classique, `scan()`), il regroupe toutes
@@ -142,7 +173,7 @@ encore portée dans la version optimisée) :
 GET http://localhost:8001/inventory/DC1?optimized=false
 ```
 
-## 6. Limites connues
+## 7. Limites connues
 
 - Les règles d'anti-affinité détaillées ne sont pas encore portées dans
   `scan_optimized()` (restent vides) — utilise `optimized=false` si tu en as besoin.
@@ -154,11 +185,12 @@ GET http://localhost:8001/inventory/DC1?optimized=false
   Docker de chaque service, validation du `docker-compose.yml`. Pas encore
   de tests automatisés ni de déploiement.
 
-## 7. Arborescence
+## 8. Arborescence
 
 ```
 vm-placement-microservices/
 ├── docker-compose.yml
+├── .gitlab-ci.yml
 ├── .env.example
 ├── run_local.sh              (Linux/Mac)
 ├── run_local_real.ps1        (Windows)
@@ -174,5 +206,6 @@ vm-placement-microservices/
     ├── booking_service/      (+ database.py)
     ├── affinity_service/
     ├── drs_adapter_service/
-    └── scoring_service/
+    ├── scoring_service/
+    └── web_ui/                (+ templates/, static/ — formulaire + admin)
 ```

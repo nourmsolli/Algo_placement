@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Admin - Santé{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="card">
+  <h2>Santé des microservices</h2>
+  <p class="hint">Résultat d'un appel GET /health sur chacun des 8 microservices du pipeline.</p>
+  <table>
+    <thead>
+      <tr><th>Service</th><th>URL</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {% for s in statuses %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td><code>{{ s.url }}</code></td>
+        <td>
+          {% if s.ok %}
+          <span class="badge ok"><span class="dot"></span>OK</span>
+          {% else %}
+          <span class="badge ko"><span class="dot"></span>Indisponible</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

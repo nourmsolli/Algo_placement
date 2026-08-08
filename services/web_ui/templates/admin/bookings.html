@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Admin - Réservations{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="card">
+  <h2>Historique des réservations</h2>
+  <p class="hint">Réservations enregistrées par le Booking Service (toutes régions, 200 plus récentes).</p>
+
+  {% if error %}
+  <div class="alert error">{{ error }}</div>
+  {% elif not bookings %}
+  <div class="empty-state">Aucune réservation pour le moment.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th><th>Région</th><th>Cluster</th><th>Host</th>
+        <th>vCPU</th><th>RAM (Go)</th><th>Stockage (Go)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bookings %}
+      <tr>
+        <td>{{ b.created_at }}</td>
+        <td>{{ b.region }}</td>
+        <td>{{ b.cluster_name }}</td>
+        <td>{{ b.host_name or "cluster entier" }}</td>
+        <td>{{ b.cpu_booked }}</td>
+        <td>{{ b.memory_booked }}</td>
+        <td>{{ b.storage_booked }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

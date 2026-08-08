@@ -1,0 +1,7 @@
+<div class="tabs">
+  <a href="/admin" class="{% if request.url.path == '/admin' %}active{% endif %}">Vue d'ensemble</a>
+  <a href="/admin/bookings" class="{% if request.url.path == '/admin/bookings' %}active{% endif %}">Réservations</a>
+  <a href="/admin/locks" class="{% if request.url.path == '/admin/locks' %}active{% endif %}">Verrous</a>
+  <a href="/admin/inventory" class="{% if request.url.path == '/admin/inventory' %}active{% endif %}">Inventaire</a>
+  <a href="/admin/health" class="{% if request.url.path == '/admin/health' %}active{% endif %}">Santé des services</a>
+</div>

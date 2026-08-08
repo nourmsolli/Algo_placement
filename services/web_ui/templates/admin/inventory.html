@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Admin - Inventaire{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="card">
+  <h2>Inventaire vSphere</h2>
+  <p class="hint">Interroge l'Inventory Service (cache 30 min par défaut) pour un backend donné.</p>
+  <form method="get" action="/admin/inventory" class="form-grid" style="align-items:end;">
+    <div class="field">
+      <label for="backend">Backend vSphere</label>
+      <input type="text" id="backend" name="backend" value="{{ backend }}">
+    </div>
+    <div class="field">
+      <button type="submit">Charger l'inventaire</button>
+    </div>
+  </form>
+</div>
+
+{% if error %}
+<div class="alert error">{{ error }}</div>
+{% elif inventory %}
+  {% if not inventory.clusters %}
+  <div class="card"><div class="empty-state">Aucun cluster trouvé pour le backend "{{ backend }}".</div></div>
+  {% endif %}
+  {% for cluster in inventory.clusters %}
+  <div class="card">
+    <h2>{{ cluster.name }}</h2>
+    <div class="result-grid">
+      <div class="stat">
+        <div class="label">Slots VM</div>
+        <div class="value">{{ cluster.vm_slots }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Score de disponibilité</div>
+        <div class="value">{{ "%.1f"|format(cluster.best_availability_score) }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Hosts</div>
+        <div class="value">{{ cluster.hosts|length }}</div>
+      </div>
+      {% if cluster.datastore %}
+      <div class="stat">
+        <div class="label">Datastore</div>
+        <div class="value">{{ cluster.datastore.name }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if cluster.hosts %}
+    <table>
+      <thead>
+        <tr>
+          <th>Host</th><th>Version ESXi</th><th>CPU utilisé</th><th>RAM utilisée</th><th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for host in cluster.hosts %}
+        <tr>
+          <td>{{ host.name }}</td>
+          <td>{{ host.esx_version or "—" }}</td>
+          <td>{{ "%.1f"|format(host.cpu_usage) }}%</td>
+          <td>{{ "%.1f"|format(host.memory_usage) }}%</td>
+          <td>{{ "%.1f"|format(host.best_availability_score) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

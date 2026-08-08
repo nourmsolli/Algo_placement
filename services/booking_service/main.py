@@ -5,11 +5,21 @@ Rôle : "Gère les résérvations recentes (<2h)" + verrou anti-surallocation.
 """
 
 import logging
+from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from shared.models import Cluster
-from database import init_db, create_booking, get_recent_bookings, Booking, acquire_lock_blocking, release_lock
+from database import (
+    init_db,
+    create_booking,
+    get_recent_bookings,
+    get_all_bookings,
+    list_active_locks,
+    Booking,
+    acquire_lock_blocking,
+    release_lock,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("booking_service")
@@ -39,6 +49,13 @@ class BookingOut(BaseModel):
     cpu_booked: float
     memory_booked: float
     storage_booked: float
+    created_at: datetime
+
+
+class LockOut(BaseModel):
+    region: str
+    token: str
+    expires_at: datetime
 
 
 class DeductRequest(BaseModel):
@@ -76,6 +93,20 @@ def add_booking(payload: BookingCreate):
     saved = create_booking(booking)
     logger.info(f"Nouvelle réservation enregistrée sur {saved.cluster_name} ({saved.host_name or 'cluster entier'})")
     return BookingOut(**saved.model_dump())
+
+
+@app.get("/bookings", response_model=list[BookingOut])
+def list_all_bookings(limit: int = 200):
+    """Historique des réservations toutes régions confondues, pour l'admin."""
+    bookings = get_all_bookings(limit)
+    return [BookingOut(**b.model_dump()) for b in bookings]
+
+
+@app.get("/locks", response_model=list[LockOut])
+def list_locks():
+    """Verrous de région actuellement actifs, pour l'admin."""
+    locks = list_active_locks()
+    return [LockOut(**lock.model_dump()) for lock in locks]
 
 
 @app.get("/bookings/{region}", response_model=list[BookingOut])
