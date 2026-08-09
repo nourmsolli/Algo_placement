@@ -10,21 +10,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from shared.models import Cluster
-from database import (
-    init_db,
-    create_booking,
-    get_recent_bookings,
-    get_all_bookings,
-    list_active_locks,
-    Booking,
-    acquire_lock_blocking,
-    release_lock,
-)
+from database import init_db, create_booking, get_recent_bookings, get_all_bookings, Booking
+from locks import build_lock_backend, acquire_blocking, RegionLockTimeout
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("booking_service")
 
 app = FastAPI(title="Booking Service", version="1.0.0")
+lock_backend = build_lock_backend()
 
 
 @app.on_event("startup")
@@ -105,8 +98,7 @@ def list_all_bookings(limit: int = 200):
 @app.get("/locks", response_model=list[LockOut])
 def list_locks():
     """Verrous de région actuellement actifs, pour l'admin."""
-    locks = list_active_locks()
-    return [LockOut(**lock.model_dump()) for lock in locks]
+    return [LockOut(**lock) for lock in lock_backend.list_active()]
 
 
 @app.get("/bookings/{region}", response_model=list[BookingOut])
@@ -161,8 +153,8 @@ def deduct_bookings(payload: DeductRequest):
 @app.post("/locks/acquire", response_model=LockResponse)
 def acquire_lock(payload: LockRequest):
     try:
-        token = acquire_lock_blocking(payload.region, payload.ttl_seconds, payload.timeout_seconds)
-    except TimeoutError as e:
+        token = acquire_blocking(lock_backend, payload.region, payload.ttl_seconds, payload.timeout_seconds)
+    except RegionLockTimeout as e:
         raise HTTPException(status_code=409, detail=str(e))
     logger.info(f"Verrou acquis pour la région {payload.region}")
     return LockResponse(token=token)
@@ -170,6 +162,6 @@ def acquire_lock(payload: LockRequest):
 
 @app.post("/locks/release")
 def release_lock_route(payload: ReleaseRequest):
-    released = release_lock(payload.region, payload.token)
+    released = lock_backend.release(payload.region, payload.token)
     logger.info(f"Verrou relâché pour la région {payload.region}: {released}")
     return {"released": released}

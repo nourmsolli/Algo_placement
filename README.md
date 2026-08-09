@@ -131,7 +131,7 @@ le service est exposé au-delà d'un environnement de démo/stage).
 | 5 jeux de règles par offre | `shared/rules.py` |
 | Anti-affinité DRS | `affinity_service` |
 | Réservations récentes <2h | `booking_service` |
-| Verrou anti-surallocation par région | `booking_service` (routes `/locks/*`, TTL 30s) |
+| Verrou anti-surallocation par région | `booking_service` (routes `/locks/*`, TTL 30s, backend SQLite ou Redis) |
 | Upgrade domains / placement par ESX | `filter_service.filter_non_resilient` + `scoring_service.score_non_resilient` |
 | Charge réelle au moment de la décision | `drs_adapter_service` (quickStats temps réel) |
 
@@ -177,24 +177,57 @@ GET http://localhost:8001/inventory/DC1?optimized=false
 
 - Les règles d'anti-affinité détaillées ne sont pas encore portées dans
   `scan_optimized()` (restent vides) — utilise `optimized=false` si tu en as besoin.
-- Le verrou anti-surallocation est en SQLite, donc valable pour une seule
-  instance du Booking Service — à porter sur Redis (`SET NX PX`) pour du
-  multi-instances.
-- Aucun test automatisé, aucune authentification sur l'API Gateway.
-- CI/CD (`.gitlab-ci.yml`) : lint (erreurs critiques uniquement), build
-  Docker de chaque service, validation du `docker-compose.yml`. Pas encore
-  de tests automatisés ni de déploiement.
+- Aucune authentification sur l'API Gateway ni sur l'espace admin.
+- CI/CD (`.gitlab-ci.yml`) : lint (erreurs critiques uniquement), tests
+  automatisés (pytest), build Docker de chaque service, validation du
+  `docker-compose.yml`. Pas encore de déploiement.
 
-## 8. Arborescence
+## 8. Verrou de région : SQLite ou Redis
+
+Le verrou anti-surallocation (`booking_service`, routes `/locks/*`) a deux
+implémentations (`services/booking_service/locks.py`), sélectionnées
+automatiquement comme le cache de l'Inventory Service :
+
+- **SQLite** (par défaut, sans `REDIS_URL`) : valable pour une seule
+  instance du Booking Service.
+- **Redis** (`SET region:<region> <token> NX PX <ttl_ms>`, dès que
+  `REDIS_URL` est configuré — c'est le cas dans `docker-compose.yml`) :
+  verrou partagé, valable pour plusieurs instances du Booking Service.
+
+## 9. Tests automatisés
+
+```bash
+pip install -r requirements-test.txt
+pip install -r services/filter_service/requirements.txt
+pip install -r services/scoring_service/requirements.txt
+pip install -r services/booking_service/requirements.txt
+pytest tests/ -v
+```
+
+- `test_filter_service.py` / `test_scoring_service.py` : tests unitaires
+  sur la logique métier pure (aucun I/O, aucun service à lancer).
+- `test_pipeline_integration.py` : enchaîne Filter Service → Scoring
+  Service sur un inventaire vSphere simulé (mock d'un scan réel).
+- `test_booking_locks.py` : verrou de région, backend SQLite et backend
+  Redis (via `fakeredis`, pas besoin d'un vrai serveur Redis).
+
+## 10. Arborescence
 
 ```
 vm-placement-microservices/
 ├── docker-compose.yml
 ├── .gitlab-ci.yml
 ├── .env.example
+├── requirements-test.txt
 ├── run_local.sh              (Linux/Mac)
 ├── run_local_real.ps1        (Windows)
 ├── stop_local_real.ps1       (Windows)
+├── tests/
+│   ├── conftest.py
+│   ├── test_filter_service.py
+│   ├── test_scoring_service.py
+│   ├── test_pipeline_integration.py
+│   └── test_booking_locks.py
 ├── shared/
 │   ├── models.py
 │   └── rules.py
@@ -203,7 +236,7 @@ vm-placement-microservices/
     ├── orchestrator/
     ├── inventory_service/    (+ vsphere_client.py, cache.py)
     ├── filter_service/
-    ├── booking_service/      (+ database.py)
+    ├── booking_service/      (+ database.py, locks.py)
     ├── affinity_service/
     ├── drs_adapter_service/
     ├── scoring_service/

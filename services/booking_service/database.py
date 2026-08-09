@@ -7,7 +7,6 @@ empêcher deux demandes simultanées de choisir le même serveur.
 """
 
 import os
-import time
 import uuid
 from datetime import datetime, timedelta
 from sqlmodel import SQLModel, Field, create_engine, Session, select
@@ -85,7 +84,7 @@ def delete_old_bookings(max_age_hours: int = 2) -> int:
         return len(old_bookings)
 
 
-# --- Verrou par région -------------------------------------------------------------
+# --- Verrou par région (backend SQLite, voir locks.py pour le backend Redis) -------
 
 def try_acquire_lock(region: str, ttl_seconds: int = 30) -> Optional[str]:
     """Tente de prendre le verrou d'une région, en une transaction atomique."""
@@ -102,16 +101,6 @@ def try_acquire_lock(region: str, ttl_seconds: int = 30) -> Optional[str]:
         session.add(lock)
         session.commit()
         return token
-
-
-def acquire_lock_blocking(region: str, ttl_seconds: int = 30, timeout_seconds: int = 15) -> str:
-    """Réessaie d'acquérir le verrou toutes les 200ms jusqu'à timeout_seconds."""
-    deadline = time.time() + timeout_seconds
-    while time.time() < deadline:
-        if token := try_acquire_lock(region, ttl_seconds):
-            return token
-        time.sleep(0.2)
-    raise TimeoutError(f"Impossible d'obtenir le verrou pour la région '{region}' après {timeout_seconds}s")
 
 
 def release_lock(region: str, token: str) -> bool:

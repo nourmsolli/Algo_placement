@@ -33,6 +33,9 @@ services:
       dockerfile: services/booking_service/Dockerfile
     environment:
       - BOOKING_DATABASE_URL=sqlite:///./bookings.db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
     volumes:
       - booking_data:/app/data
     ports:

@@ -1,5 +1,6 @@
 stages:
   - lint
+  - test
   - build
   - validate
 
@@ -14,7 +15,18 @@ lint:
   script:
     # Erreurs de syntaxe et bugs réels (imports/noms non définis) uniquement,
     # pas de style : le code n'a jamais été linté avant cette pipeline.
-    - ruff check --select=E9,F shared/ services/
+    - ruff check --select=E9,F shared/ services/ tests/
+
+test:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir -r requirements-test.txt
+    - pip install --no-cache-dir -r services/filter_service/requirements.txt
+    - pip install --no-cache-dir -r services/scoring_service/requirements.txt
+    - pip install --no-cache-dir -r services/booking_service/requirements.txt
+  script:
+    - pytest tests/ -v
 
 build:
   stage: build
